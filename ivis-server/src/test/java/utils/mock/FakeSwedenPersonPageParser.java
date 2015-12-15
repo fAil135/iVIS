@@ -39,7 +39,11 @@ public class FakeSwedenPersonPageParser implements PageParser<Person> {
     public Person parse(String pageContent) {
         int begin = pageContent.indexOf("<table");
         int end = pageContent.indexOf("</table>");
-        String table = pageContent.substring(begin, end);
+        try {
+            String table = pageContent.substring(begin, end);
+        } catch (Exception e) {
+            return null;
+        }
 
         Map<String, String> swede = new HashMap<>();
         Person person = new Person();
@@ -65,13 +69,13 @@ public class FakeSwedenPersonPageParser implements PageParser<Person> {
         String postalCode = cityPostalCode.replaceAll("\\D", "").trim();
         address.setCity(city);
 //        address.setCareOf(swede.get(""));
-        address.setMunicipalityCode(city.substring(0, 3).toUpperCase());
+        if (!city.isEmpty()) {
+            address.setMunicipalityCode(city.substring(0, Math.min(3, city.length())).toUpperCase());
+        }
         address.setPostalCode(Integer.parseInt(postalCode));
         address.setStreet(swede.get("Street"));
         person.setAddress(address);
 //        person.set(swede.get(""));
-
-//        System.out.println(swede);
 
         return person;
     }
