@@ -9,6 +9,7 @@ import com.imcode.controllers.html.form.upload.loaders.EntityLoader;
 import com.imcode.controllers.html.form.upload.loaders.LoaderService;
 import com.imcode.entities.Person;
 import com.imcode.misc.UploadFileManager;
+import com.imcode.services.BatchItemWriterService;
 import com.imcode.utils.StaticUtils;
 import com.sun.net.httpserver.HttpPrincipal;
 import org.apache.commons.lang3.ClassUtils;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,12 +51,15 @@ import java.util.stream.Collectors;
 public class CsvLoaderController {
     private static final String UPLOAD_FILE_MANAGER = "uploadFileManager";
     private final Logger logger = Logger.getLogger(getClass().getName());
-    private boolean debug = false;
+    private boolean debug = true;
     @Autowired
     private ApplicationContext applicationContext;
 
     @Autowired
     private LoaderService loaderService;
+
+    @Autowired
+    private BatchItemWriterService batchItemWriterService;
 
     private Map<Class<?>, Supplier<FieldSetMapper>> fieldSetMappers;
 
@@ -113,6 +118,7 @@ public class CsvLoaderController {
         return step3(optionsForm, model, request, principal);
     }
 
+    @Transactional
     @SuppressWarnings("unchecked")
     @RequestMapping(value = "/step3", method = RequestMethod.POST)
     public String step3(
@@ -167,21 +173,30 @@ public class CsvLoaderController {
                     logger.warning(e::getMessage);
                 }
 
-                ItemWriter itemWriter = entityLoader.getItemWriter();
+//                ItemWriter itemWriter = entityLoader.getItemWriter();
+                ItemWriter itemWriter = batchItemWriterService;
 
                 try {
-                    itemWriter.write(result);
+                    batchItemWriterService.merge(result);
                 } catch (Exception e) {
                     logger.warning(e::getMessage);
                 }
 
                 fileOption.setResult(result);
 
-                if (!debug) {
-                    uploadFileManager.delete(fileId);
-                }
+
             }
         }
+
+        for (FileOption fileOption : optionsForm.getFileOptionList()) {
+            if (!debug) {
+                String fileId = fileOption.getFileId();
+                uploadFileManager.delete(fileId);
+            }
+        }
+
+        batchItemWriterService.flush();
+
         model.addAttribute("fileUploadOptionsForm", optionsForm);
         return "csv/file_upload_step3";
     }

@@ -3,12 +3,13 @@ package com.imcode;
 import com.imcode.entities.Guardian;
 import com.imcode.entities.Person;
 import com.imcode.entities.interfaces.JpaPersonalizedEntity;
+import com.imcode.services.GuardianService;
+import com.imcode.services.TestService;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.FieldSet;
 import org.springframework.beans.MutablePropertyValues;
 import org.springframework.beans.PropertyValues;
 import org.springframework.context.support.GenericXmlApplicationContext;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.validation.BindException;
 import org.springframework.validation.DataBinder;
 import org.w3c.dom.Document;
@@ -19,6 +20,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -29,7 +31,6 @@ import java.util.function.Supplier;
  * Created by vitaly on 17.02.15.
  */
 public class MainTest {
-
 
 //    public static void main(String[] args) {
 //        GenericXmlApplicationContext context = new GenericXmlApplicationContext();
@@ -170,7 +171,19 @@ public class MainTest {
 //////            }
 ////        } catch (Exception ignore) { }
         GenericXmlApplicationContext ctx = getApplicationContext();
-        ConversionService cs = ctx.getBean("csvConversionService", ConversionService.class);
+        TestService test = ctx.getBean(TestService.class);
+        GuardianService guardianService = ctx.getBean(GuardianService.class);
+
+//        test.test();
+        Guardian g1 = MainTest.getPersonalizedEntity(Guardian::new, "790411-5867", "Birgit", "Engström");
+        Guardian g2 = MainTest.getPersonalizedEntity(Guardian::new, "530304-5677", "Orvar", "Vestman");
+        Guardian g3 = getPersonalizedEntity(Guardian::new, "841214-4142", "Adela", "Leandersson");
+        Guardian g4 = getPersonalizedEntity(Guardian::new, "840612-7657", "Karl-Gunnar", "Lovén");
+
+        test.mergeTransactional(Arrays.asList(g3, g4));
+        test.mergeTransactional(Arrays.asList(g1, g2));
+        test.flush();
+
         System.out.println();
 //        EntityManager em = ctx.getBean(EntityManager.class);
 //
@@ -460,7 +473,8 @@ public class MainTest {
 ////        System.out.println(properties);
     }
 
-    public static <T extends JpaPersonalizedEntity> T  getPersonalizedEntity(Supplier<T> constructor, String personalId, String firstName, String lastName) {
+
+    public static <T extends JpaPersonalizedEntity> T getPersonalizedEntity(Supplier<T> constructor, String personalId, String firstName, String lastName) {
         T entity = constructor.get();
         Person person = new Person(personalId, firstName, lastName);
         entity.setPerson(person);
@@ -472,7 +486,7 @@ public class MainTest {
 //        setter.accept();
 //    }
 
-    private static GenericXmlApplicationContext getApplicationContext() {
+    public static GenericXmlApplicationContext getApplicationContext() {
         GenericXmlApplicationContext ctx = new GenericXmlApplicationContext();
         ctx.load("classpath:/spring/data.xml");
         ctx.refresh();

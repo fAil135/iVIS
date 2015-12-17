@@ -300,5 +300,5 @@
 
     <!--This converter don't insert the null items to collections-->
     <beans:bean class="com.imcode.controllers.converters.NotNullStringToCollectionConverter" c:conversionService-ref="csvConversionService"/>
-    
+
 </beans:beans>
